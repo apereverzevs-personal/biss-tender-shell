@@ -1,0 +1,87 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BISS Tender Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+  body{margin:0;font:15px Inter,-apple-system,"Segoe UI",Arial,sans-serif;
+       background:#FFF;color:#0A0A0A}
+  .gate{max-width:400px;margin:16vh auto;padding:0 20px;text-align:center}
+  .gate h1{font-size:20px;font-weight:600;letter-spacing:-.02em;margin:0 0 8px;
+           display:flex;align-items:center;justify-content:center;gap:9px}
+  .gate p{color:#6F6D5E;font-size:13.5px;margin:0 0 24px;line-height:1.55}
+  .mark{width:13px;height:13px;background:#FFE900;display:inline-block;
+        transform:rotate(45deg)}
+  button{font:600 14px Inter,sans-serif;padding:10px 20px;border:1px solid #0A0A0A;
+         background:#FFE900;border-radius:6px;cursor:pointer}
+  button:hover{background:#0A0A0A;color:#FFE900}
+  .msg{font-size:13px;margin-top:18px;line-height:1.55}
+  .err{color:#9E2B20}
+  .dim{color:#9A9887;font-size:12px}
+  .out{margin-top:22px;font-size:12px;color:#6F6D5E;background:none;border:none;
+       text-decoration:underline;cursor:pointer;padding:0}
+</style>
+
+<div id="gate" class="gate">
+  <h1><span class="mark"></span>BISS Tender Desk</h1>
+  <p>Sign in with your BISS Microsoft account.</p>
+  <button id="in" type="button">Sign in</button>
+  <div id="msg" class="msg"></div>
+</div>
+
+<div id="desk"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(async function () {
+  var msg = document.getElementById('msg');
+  var gate = document.getElementById('gate');
+
+  function fail(text, detail) {
+    msg.className = 'msg err';
+    msg.innerHTML = text + (detail ? '<div class="dim">' + detail + '</div>' : '');
+  }
+
+  // build_shell.py replaces the line below with the real project URL and anon
+  // key. Both are public by design: row-level security protects the data, not
+  // the key. A service key here would be a serious mistake, and build_shell.py
+  // refuses to write one.
+  var cfg = {"url": "https://bhdxhxvlvmdhqcjszllf.supabase.co", "anon_key": "sb_publishable_-1v2Q6YMv2wMiJrP2S-fJA_mkMng761"};
+
+  var sb = window.supabase.createClient(cfg.url, cfg.anon_key);
+
+  document.getElementById('in').onclick = function () {
+    sb.auth.signInWithOAuth({
+      provider: 'azure',
+      options: {scopes: 'email openid profile', redirectTo: window.location.href}
+    });
+  };
+
+  var session = (await sb.auth.getSession()).data.session;
+  if (!session) { return; }              // show the sign-in button
+
+  // The rendered desk is a private object. Fetching it fails without a valid
+  // token, which is the whole reason it is not served as a file.
+  var got = await sb.storage.from('desk-private').download('desk.html');
+  if (got.error) {
+    var who = (session.user && session.user.email) || 'this account';
+    fail('Signed in as ' + who + ', but it is not on the allow list.',
+         'Ask Alex to add it, then reload.');
+    var out = document.createElement('button');
+    out.className = 'out';
+    out.textContent = 'Sign out';
+    out.onclick = function () { sb.auth.signOut().then(function () { location.reload(); }); };
+    gate.appendChild(out);
+    return;
+  }
+
+  gate.hidden = true;
+  document.getElementById('desk').innerHTML = await got.data.text();
+
+  // dash.js, which ships inside the rendered page, looks for these.
+  window.__sb = sb;
+  window.__user = (session.user && session.user.email) || '';
+  document.dispatchEvent(new CustomEvent('desk:ready'));
+})();
+</script>
