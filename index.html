@@ -77,11 +77,28 @@
   }
 
   gate.hidden = true;
-  document.getElementById('desk').innerHTML = await got.data.text();
 
-  // dash.js, which ships inside the rendered page, looks for these.
+  // dash.js reads these at startup, so they must exist before it runs.
   window.__sb = sb;
   window.__user = (session.user && session.user.email) || '';
+
+  injectDesk(document.getElementById('desk'), await got.data.text());
   document.dispatchEvent(new CustomEvent('desk:ready'));
+
+  // Scripts inserted with innerHTML are parsed but never executed — the HTML
+  // spec marks them "already started". The desk's entire behaviour is one such
+  // script, so every script element has to be recreated as a fresh node, which
+  // does execute. Without this the page renders perfectly and nothing works.
+  function injectDesk(mount, html) {
+    mount.innerHTML = html;
+    mount.querySelectorAll('script').forEach(function (dead) {
+      var live = document.createElement('script');
+      for (var i = 0; i < dead.attributes.length; i++) {
+        live.setAttribute(dead.attributes[i].name, dead.attributes[i].value);
+      }
+      live.textContent = dead.textContent;
+      dead.replaceWith(live);
+    });
+  }
 })();
 </script>
