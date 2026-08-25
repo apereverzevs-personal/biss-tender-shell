@@ -51,10 +51,33 @@
 
   var sb = window.supabase.createClient(cfg.url, cfg.anon_key);
 
+  // The redirect target must be the clean page URL. Passing location.href
+  // packs any leftover auth/error fragment into the next request's state, so
+  // each failed attempt grows the query string until Azure rejects it
+  // (AADSTS90015). The clean URL also matches the Supabase allow-list exactly.
+  var CLEAN_URL = location.origin + location.pathname;
+
+  // Surface and remove a returned error so it cannot join the next attempt.
+  if (location.hash.indexOf('error') !== -1) {
+    var frag = new URLSearchParams(location.hash.slice(1));
+    var desc = frag.get('error_description') || frag.get('error');
+    if (desc) { fail('Sign-in did not complete.', desc.replace(/\+/g, ' ')); }
+    history.replaceState(null, '', CLEAN_URL);
+  }
+
+  // OAuth inside embedded app browsers (Teams, Outlook, LinkedIn…) fails in
+  // confusing ways. Detect the common ones and say the quiet part out loud.
+  var ua = navigator.userAgent || '';
+  if (/TeamsMobile|Teams\/|OutlookMobile|LinkedInApp|FBAN|FBAV|Instagram/i.test(ua)) {
+    fail('This looks like an in-app browser.',
+         'Sign-in works unreliably inside Teams/Outlook. Use the ⋯ menu and ' +
+         'choose "Open in browser", then sign in there.');
+  }
+
   document.getElementById('in').onclick = function () {
     sb.auth.signInWithOAuth({
       provider: 'azure',
-      options: {scopes: 'email openid profile', redirectTo: window.location.href}
+      options: {scopes: 'email openid profile', redirectTo: CLEAN_URL}
     });
   };
 
