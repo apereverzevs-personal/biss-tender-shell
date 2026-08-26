@@ -11,15 +11,18 @@
   .gate h1{font-size:20px;font-weight:600;letter-spacing:-.02em;margin:0 0 8px;
            display:flex;align-items:center;justify-content:center;gap:9px}
   .gate p{color:#6F6D5E;font-size:13.5px;margin:0 0 24px;line-height:1.55}
-  .mark{width:13px;height:13px;background:#FFE900;display:inline-block;
+  /* Every rule stays scoped to .gate: the desk is injected into this same
+     document, so a bare `button:hover` here used to repaint every desk
+     button black on hover (black-on-black text in light mode). */
+  .gate .mark{width:13px;height:13px;background:#FFE900;display:inline-block;
         transform:rotate(45deg)}
-  button{font:600 14px Inter,sans-serif;padding:10px 20px;border:1px solid #0A0A0A;
+  .gate button{font:600 14px Inter,sans-serif;padding:10px 20px;border:1px solid #0A0A0A;
          background:#FFE900;border-radius:6px;cursor:pointer}
-  button:hover{background:#0A0A0A;color:#FFE900}
-  .msg{font-size:13px;margin-top:18px;line-height:1.55}
-  .err{color:#9E2B20}
-  .dim{color:#9A9887;font-size:12px}
-  .out{margin-top:22px;font-size:12px;color:#6F6D5E;background:none;border:none;
+  .gate button:hover{background:#0A0A0A;color:#FFE900}
+  .gate .msg{font-size:13px;margin-top:18px;line-height:1.55}
+  .gate .err{color:#9E2B20}
+  .gate .dim{color:#9A9887;font-size:12px}
+  .gate .out{margin-top:22px;font-size:12px;color:#6F6D5E;background:none;border:none;
        text-decoration:underline;cursor:pointer;padding:0}
 </style>
 
